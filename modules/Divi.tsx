@@ -3,6 +3,7 @@ import { ModuleShell } from '../components/ModuleShell';
 import { Language, GameState, SessionResult, ModuleID } from '../types';
 import { Button } from '../components/Button';
 import { translations } from '../services/localization';
+import { audioService } from '../services/audio';
 import { Volume2, Eye } from 'lucide-react';
 
 interface DiviProps {
@@ -43,28 +44,6 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
     setLights(new Array(numLights).fill('off'));
   }, [numLights]);
 
-  const playSound = (isHigh: boolean) => {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    // Improved Audio Distinction
-    // High: Square wave (sharp, buzzer-like) at 1500Hz
-    // Low: Sine wave (smooth, dull) at 150Hz
-    osc.type = isHigh ? 'square' : 'sine';
-    osc.frequency.value = isHigh ? 1500 : 150; 
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    // Increase Volume significantly
-    gain.gain.setValueAtTime(0.35, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-
-    osc.start();
-    setTimeout(() => osc.stop(), 300);
-  };
-
   const scheduleVisual = () => {
     if (!gameState.isPlaying) return;
     
@@ -102,7 +81,7 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
     audioTimerRef.current = window.setTimeout(() => {
       // 30% chance of High Pitch (Target)
       const isTarget = Math.random() < 0.3;
-      playSound(isTarget);
+      audioService.playSound(isTarget ? 'high-pitch' : 'low-pitch');
       
       if (isTarget) {
         (window as any).audioTargetActive = true;

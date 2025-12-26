@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ModuleShell } from '../components/ModuleShell';
 import { Language, GameState, SessionResult, ModuleID } from '../types';
 import { translations } from '../services/localization';
+import { audioService } from '../services/audio';
 import { Circle, User, Play, AlertTriangle } from 'lucide-react';
 
 interface ReakProps {
@@ -31,28 +32,6 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   const startTimeRef = useRef<number>(0);
   const [reactionTimes, setReactionTimes] = useState<number[]>([]);
 
-  // Sound effects
-  const playBeep = (type: 'go' | 'error') => {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    if (type === 'go') {
-      osc.frequency.value = 800;
-      gain.gain.value = 0.1;
-      osc.type = 'sine';
-    } else {
-      osc.frequency.value = 150; // Low error buzz
-      gain.gain.value = 0.2;
-      osc.type = 'sawtooth';
-    }
-
-    osc.start();
-    setTimeout(() => osc.stop(), 150);
-  };
-
   const scheduleTrial = () => {
     if (!gameState.isPlaying) return;
     setStatus('waiting');
@@ -70,14 +49,14 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
     timeoutRef.current = window.setTimeout(() => {
       setStatus('go');
       startTimeRef.current = Date.now();
-      playBeep('go');
+      audioService.playSound('success-chime');
 
       // Set a timer for missed reaction (e.g., 2 seconds max)
       missTimerRef.current = window.setTimeout(() => {
          if (status !== 'feedback') {
            setStatus('feedback');
            setFeedback(t.game.missed || "Missed!");
-           playBeep('error');
+           audioService.playSound('error-buzz');
            setGameState(prev => ({
               ...prev,
               errors: prev.errors + 1,
@@ -106,7 +85,7 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
       clearTimeout(timeoutRef.current); // Prevent it from turning green
       setStatus('feedback');
       setFeedback(t.game.reak_early);
-      playBeep('error');
+      audioService.playSound('error-buzz');
       
       setGameState(prev => ({
         ...prev,
