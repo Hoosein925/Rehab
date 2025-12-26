@@ -37,22 +37,30 @@ export const audioService = {
   },
 
   /**
+   * Checks if the global AudioContext is initialized and running.
+   * @returns {boolean} True if audio is likely to play.
+   */
+  isAudioReady: (): boolean => {
+    return !!audioContext && audioContext.state === 'running';
+  },
+
+  /**
    * Plays a pre-defined sound effect using the global AudioContext.
    * @param type The type of sound to play.
    */
   playSound: (
     type: 'high-pitch' | 'low-pitch' | 'error-buzz' | 'success-chime'
   ) => {
-    if (!audioContext || audioContext.state !== 'running') {
+    if (!audioService.isAudioReady()) {
       console.warn("AudioContext not ready or running. Cannot play sound.");
       return;
     }
 
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
+    const osc = audioContext!.createOscillator();
+    const gain = audioContext!.createGain();
 
     osc.connect(gain);
-    gain.connect(audioContext.destination);
+    gain.connect(audioContext!.destination);
 
     let freq: number;
     let oscType: OscillatorType;
@@ -87,17 +95,17 @@ export const audioService = {
     }
 
     osc.type = oscType;
-    osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+    osc.frequency.setValueAtTime(freq, audioContext!.currentTime);
 
     // Apply a fade-out for the Divi sounds to make them less harsh
     if (type === 'high-pitch' || type === 'low-pitch') {
-       gain.gain.setValueAtTime(volume, audioContext.currentTime);
-       gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration / 1000);
+       gain.gain.setValueAtTime(volume, audioContext!.currentTime);
+       gain.gain.exponentialRampToValueAtTime(0.001, audioContext!.currentTime + duration / 1000);
     } else {
        gain.gain.value = volume;
     }
     
-    osc.start(audioContext.currentTime);
-    osc.stop(audioContext.currentTime + duration / 1000);
+    osc.start(audioContext!.currentTime);
+    osc.stop(audioContext!.currentTime + duration / 1000);
   }
 };

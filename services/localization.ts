@@ -142,7 +142,8 @@ export const translations = {
     errorFile: "Invalid backup file.",
     creator: "Creator: Hossein Nassari - 2025",
     watchVideos: "For educational videos:",
-    contactCreator: "Contact Creator:"
+    contactCreator: "Contact Creator:",
+    silentModeWarning: "Sound may be off. Please check your device's silent mode."
   },
   [Language.AR]: {
     welcome: "تسجيل الدخول NeuroRehab",
@@ -283,7 +284,8 @@ export const translations = {
     errorFile: "ملف النسخ الاحتياطي غير صالح.",
     creator: "المطور: حسين نصاري - 2025",
     watchVideos: "لمقاطع الفيديو التعليمية:",
-    contactCreator: "للتواصل مع المطور:"
+    contactCreator: "للتواصل مع المطور:",
+    silentModeWarning: "قد يكون الصوت مغلقًا. يرجى التحقق من وضع الصامت في جهازك."
   },
   [Language.FA]: {
     welcome: "ورود به سیستم توانبخشی",
@@ -424,6 +426,7 @@ export const translations = {
     errorFile: "فایل پشتیبان نامعتبر است.",
     creator: "سازنده حسین نصاری سال ۱۴۰۴",
     watchVideos: "جهت دسترسی به ویدئوهای آموزشی:",
-    contactCreator: "ارتباط با سازنده:"
+    contactCreator: "ارتباط با سازنده:",
+    silentModeWarning: "صدا ممکن است قطع باشد. لطفاً حالت بی‌صدا (Silent) دستگاه خود را بررسی کنید."
   }
 };
