@@ -24,6 +24,21 @@ export const storage = {
     return newUser;
   },
 
+  deleteUser: (userId: string) => {
+    try {
+      // Remove user
+      const users = storage.getUsers().filter(u => u.id !== userId);
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      
+      // Remove associated sessions
+      const sessions: SessionResult[] = JSON.parse(localStorage.getItem(SESSIONS_KEY) || '[]');
+      const filteredSessions = sessions.filter(s => s.userId !== userId);
+      localStorage.setItem(SESSIONS_KEY, JSON.stringify(filteredSessions));
+    } catch (e) {
+      console.error("Failed to delete user data", e);
+    }
+  },
+
   saveSession: (session: SessionResult) => {
     try {
       const sessions: SessionResult[] = JSON.parse(localStorage.getItem(SESSIONS_KEY) || '[]');
