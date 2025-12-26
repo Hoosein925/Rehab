@@ -1,0 +1,7 @@
+{
+  "name": " NeuroRehab Web 2",
+  "description": "A professional cognitive rehabilitation platform inspired by RehaCom. Features adaptive training modules for attention, memory, and executive functions.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
