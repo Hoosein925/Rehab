@@ -36,7 +36,7 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   const startTimeRef = useRef<number>(0);
   const [reactionTimes, setReactionTimes] = useState<number[]>([]);
 
-  // Fix: Use window.clearTimeout to avoid ambiguity and ensure explicit arguments are passed
+  // Fix: Ensure arguments are explicitly passed to window.clearTimeout
   const clearAllTimers = () => {
     if (timeoutRef.current !== undefined) window.clearTimeout(timeoutRef.current);
     if (missTimerRef.current !== undefined) window.clearTimeout(missTimerRef.current);

@@ -42,7 +42,7 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
   const audioTargetTimerRef = useRef<number>();
   const audioActiveRef = useRef(false);
 
-  // Fix: Use window.clearTimeout and ensure explicit arguments
+  // Fix: Ensure arguments are explicitly passed to window.clearTimeout
   const clearAllTimers = () => {
     if (visualTimerRef.current !== undefined) window.clearTimeout(visualTimerRef.current);
     if (visualOffTimerRef.current !== undefined) window.clearTimeout(visualOffTimerRef.current);

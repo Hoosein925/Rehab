@@ -49,7 +49,7 @@ export const Nback: React.FC<NbackProps> = ({ language, onComplete }) => {
   // Track loop status to prevent double-starts
   const isLoopRunningRef = useRef(false);
 
-  // Fix: Use window.clearTimeout and ensure explicit arguments
+  // Fix: Ensure arguments are explicitly passed to window.clearTimeout
   const clearTimers = () => {
     if (displayTimerRef.current !== undefined) window.clearTimeout(displayTimerRef.current);
     if (blankTimerRef.current !== undefined) window.clearTimeout(blankTimerRef.current);
