@@ -34,7 +34,8 @@ export const Vigi: React.FC<VigiProps> = ({ language, onComplete }) => {
 
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [targetItem, setTargetItem] = useState<any>(Zap);
-  const timerRef = useRef<number>();
+  // Fixed: Added initial value undefined to useRef to comply with Expected 1 arguments
+  const timerRef = useRef<number>(undefined);
 
   const runTrial = () => {
     if (!gameState.isPlaying || gameState.isPaused) return;
@@ -63,9 +64,10 @@ export const Vigi: React.FC<VigiProps> = ({ language, onComplete }) => {
     if(gameState.isPlaying && !gameState.isPaused) {
       runTrial();
     }
-    // Correcting clearTimeout calls in cleanup function to ensure arguments are passed as required by TypeScript types
     return () => {
-      if (timerRef.current !== undefined) window.clearTimeout(timerRef.current);
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
     };
   }, [gameState.isPlaying, gameState.isPaused]);
 
@@ -98,9 +100,9 @@ export const Vigi: React.FC<VigiProps> = ({ language, onComplete }) => {
   return (
     <ModuleShell 
       title={t.modInfo.VIGI.name} 
-      language={language}
-      gameState={gameState}
-      onPauseToggle={() => setGameState(p => ({...p, isPaused: !p.isPaused}))}
+      language={language} 
+      gameState={gameState} 
+      onPauseToggle={() => setGameState(p => ({...p, isPaused: !p.isPaused}))} 
       onStop={finishSession}
     >
       <div className="flex flex-col items-center justify-center h-full bg-slate-900 text-white gap-12">

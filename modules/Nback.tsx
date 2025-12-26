@@ -39,8 +39,9 @@ export const Nback: React.FC<NbackProps> = ({ language, onComplete }) => {
   const [trialDuration, setTrialDuration] = useState(3000);
   
   // Refs for logic accuracy & Timer Management
-  const displayTimerRef = useRef<number>();
-  const blankTimerRef = useRef<number>();
+  // Fixed: Added initial value undefined to useRef to comply with Expected 1 arguments
+  const displayTimerRef = useRef<number>(undefined);
+  const blankTimerRef = useRef<number>(undefined);
   
   const historyRef = useRef<number[]>([]);
   const isCurrentTargetRef = useRef(false);
@@ -49,12 +50,15 @@ export const Nback: React.FC<NbackProps> = ({ language, onComplete }) => {
   // Track loop status to prevent double-starts
   const isLoopRunningRef = useRef(false);
 
-  // Correcting clearTimeout calls to ensure arguments are passed as required by TypeScript types
   const clearTimers = () => {
-    if (displayTimerRef.current !== undefined) window.clearTimeout(displayTimerRef.current);
-    if (blankTimerRef.current !== undefined) window.clearTimeout(blankTimerRef.current);
-    displayTimerRef.current = undefined;
-    blankTimerRef.current = undefined;
+    if (displayTimerRef.current) {
+      window.clearTimeout(displayTimerRef.current);
+      displayTimerRef.current = undefined;
+    }
+    if (blankTimerRef.current) {
+      window.clearTimeout(blankTimerRef.current);
+      blankTimerRef.current = undefined;
+    }
   };
 
   useEffect(() => {

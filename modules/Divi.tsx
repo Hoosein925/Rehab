@@ -36,22 +36,30 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
   const [showSilentWarning, setShowSilentWarning] = useState(false);
   
   const isMounted = useRef(true);
-  const visualTimerRef = useRef<number>();
-  const visualOffTimerRef = useRef<number>();
-  const audioTimerRef = useRef<number>();
-  const audioTargetTimerRef = useRef<number>();
+  // Fixed: Added initial value undefined to useRef to comply with Expected 1 arguments
+  const visualTimerRef = useRef<number>(undefined);
+  const visualOffTimerRef = useRef<number>(undefined);
+  const audioTimerRef = useRef<number>(undefined);
+  const audioTargetTimerRef = useRef<number>(undefined);
   const audioActiveRef = useRef(false);
 
-  // Correcting clearTimeout calls to ensure arguments are passed as required by TypeScript types
   const clearAllTimers = () => {
-    if (visualTimerRef.current !== undefined) window.clearTimeout(visualTimerRef.current);
-    if (visualOffTimerRef.current !== undefined) window.clearTimeout(visualOffTimerRef.current);
-    if (audioTimerRef.current !== undefined) window.clearTimeout(audioTimerRef.current);
-    if (audioTargetTimerRef.current !== undefined) window.clearTimeout(audioTargetTimerRef.current);
-    visualTimerRef.current = undefined;
-    visualOffTimerRef.current = undefined;
-    audioTimerRef.current = undefined;
-    audioTargetTimerRef.current = undefined;
+    if (visualTimerRef.current) {
+      window.clearTimeout(visualTimerRef.current);
+      visualTimerRef.current = undefined;
+    }
+    if (visualOffTimerRef.current) {
+      window.clearTimeout(visualOffTimerRef.current);
+      visualOffTimerRef.current = undefined;
+    }
+    if (audioTimerRef.current) {
+      window.clearTimeout(audioTimerRef.current);
+      audioTimerRef.current = undefined;
+    }
+    if (audioTargetTimerRef.current) {
+      window.clearTimeout(audioTargetTimerRef.current);
+      audioTargetTimerRef.current = undefined;
+    }
     audioActiveRef.current = false;
   };
 
@@ -133,7 +141,7 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
     const state = lights[idx];
     if (state === 'target') {
       setLights(new Array(numLights).fill('off'));
-      if (visualOffTimerRef.current !== undefined) window.clearTimeout(visualOffTimerRef.current);
+      if (visualOffTimerRef.current) window.clearTimeout(visualOffTimerRef.current);
       
       setGameState(p => ({
         ...p, 
@@ -151,7 +159,7 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
     if (audioActiveRef.current) {
       setGameState(p => ({...p, score: p.score + 1, trials: p.trials + 1}));
       audioActiveRef.current = false;
-      if (audioTargetTimerRef.current !== undefined) window.clearTimeout(audioTargetTimerRef.current);
+      if (audioTargetTimerRef.current) window.clearTimeout(audioTargetTimerRef.current);
     } else {
       setGameState(p => ({...p, errors: p.errors + 1, trials: p.trials + 1}));
     }

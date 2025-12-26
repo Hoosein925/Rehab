@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { ModuleShell } from '../components/ModuleShell';
 import { Language, GameState, SessionResult, ModuleID } from '../types';
 import { translations } from '../services/localization';
@@ -31,56 +32,49 @@ export const Plan: React.FC<PlanProps> = ({ language, onComplete }) => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [nextOrder, setNextOrder] = useState(1);
   const [mode, setMode] = useState<'num' | 'mix'>('num');
+  const isMounted = useRef(true);
 
-  const getLabel = (idx: number, isMix: boolean, lang: Language) => {
-    // idx starts at 0
+  const getLabel = (idx: number, isMix: boolean) => {
     if (!isMix) return (idx + 1).toString();
-
-    // Mix: 1, A, 2, B...
-    // Even idx (0, 2...) -> Numbers (1, 2...)
-    // Odd idx (1, 3...) -> Letters (A, B...)
     if (idx % 2 === 0) {
       return (Math.floor(idx / 2) + 1).toString();
     } else {
       const charCode = Math.floor(idx / 2);
-      if (lang === Language.FA || lang === Language.AR) {
-        const arabicAlpha = ['ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د'];
-        return arabicAlpha[charCode] || '?';
-      }
       return String.fromCharCode(65 + charCode); // A, B, C...
     }
   };
 
   const startLevel = () => {
-    // Mode switch: Level 5+ introduces Mix mode
+    if (!isMounted.current) return;
     const isMix = gameState.level >= 5;
     setMode(isMix ? 'mix' : 'num');
 
     const count = Math.min(4 + gameState.level, 12);
     const newNodes: Node[] = [];
     
-    // Collision detection
     for(let i=0; i<count; i++) {
       let x, y, valid;
       let attempts = 0;
       do {
         x = Math.random() * 80 + 10;
-        y = Math.random() * 80 + 10;
+        // Safety margin at top (35%) to prevent overlap with instruction header
+        y = Math.random() * 55 + 35; 
         valid = true;
+
         for (const n of newNodes) {
           const dx = n.x - x;
           const dy = n.y - y;
-          if (Math.sqrt(dx*dx + dy*dy) < 12) { // Minimum distance
+          if (Math.sqrt(dx*dx + dy*dy) < 15) { 
              valid = false;
              break;
           }
         }
         attempts++;
-      } while (!valid && attempts < 100);
+      } while (!valid && attempts < 200);
 
       newNodes.push({
         id: i,
-        label: getLabel(i, isMix, language),
+        label: getLabel(i, isMix),
         x,
         y,
         order: i + 1,
@@ -92,10 +86,14 @@ export const Plan: React.FC<PlanProps> = ({ language, onComplete }) => {
   };
 
   useEffect(() => {
+    isMounted.current = true;
     startLevel();
+    return () => { isMounted.current = false; };
   }, [gameState.level]);
 
   const handleNodeClick = (node: Node) => {
+    if (gameState.isPaused || !isMounted.current) return;
+
     if (node.order === nextOrder) {
       const updated = nodes.map(n => n.id === node.id ? {...n, completed: true} : n);
       setNodes(updated);
@@ -122,12 +120,13 @@ export const Plan: React.FC<PlanProps> = ({ language, onComplete }) => {
   };
 
   return (
-    <ModuleShell title={t.modInfo.PLAN.name} language={language} gameState={gameState} onPauseToggle={() => {}} onStop={finishSession}>
-       <div className="w-full h-full relative bg-slate-50">
-          <div className="absolute top-4 left-4 text-slate-500 font-bold bg-white/80 p-2 rounded shadow backdrop-blur-sm z-10">
-             <div className="text-sm">{t.game.plan_instr}</div>
-             <div className="text-lg text-blue-600">
-               {mode === 'num' ? t.game.plan_mode_num : t.game.plan_mode_mix}
+    <ModuleShell title={t.modInfo.PLAN.name} language={language} gameState={gameState} onPauseToggle={() => setGameState(p => ({...p, isPaused: !p.isPaused}))} onStop={finishSession}>
+       <div className="w-full h-full relative bg-slate-50 overflow-hidden">
+          {/* Header forced to LTR and fixed width for clinical accuracy */}
+          <div className="absolute top-0 left-0 right-0 p-3 md:p-5 bg-white/90 backdrop-blur-md border-b border-slate-200 z-40 text-center shadow-sm">
+             <div className="text-[10px] md:text-xs uppercase tracking-widest text-slate-400 mb-1 font-bold">{t.game.plan_instr}</div>
+             <div className="text-lg md:text-2xl text-blue-600 font-black" dir="ltr">
+               {mode === 'num' ? "1 → 2 → 3" : "1 → A → 2 → B"}
              </div>
           </div>
           
@@ -136,9 +135,9 @@ export const Plan: React.FC<PlanProps> = ({ language, onComplete }) => {
               key={node.id}
               disabled={node.completed}
               onClick={() => handleNodeClick(node)}
-              className={`absolute w-12 h-12 md:w-16 md:h-16 rounded-full border-2 font-bold shadow-md transition-all flex items-center justify-center text-lg md:text-xl
+              className={`absolute w-14 h-14 md:w-20 md:h-20 rounded-full border-2 font-bold shadow-lg transition-all flex items-center justify-center text-xl md:text-2xl
                 ${node.completed 
-                   ? 'bg-green-100 border-green-300 text-green-700 opacity-50' 
+                   ? 'bg-emerald-50 border-emerald-300 text-emerald-600 opacity-40 scale-90' 
                    : 'bg-white border-blue-500 text-blue-700 hover:scale-110 active:scale-95 z-20 hover:z-30'
                 }
               `}
