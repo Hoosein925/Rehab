@@ -4,7 +4,7 @@ import { Language, GameState, SessionResult, ModuleID } from '../types';
 import { Button } from '../components/Button';
 import { translations } from '../services/localization';
 import { audioService } from '../services/audio';
-import { Volume2, Eye } from 'lucide-react';
+import { Volume2, Eye, VolumeX } from 'lucide-react';
 
 interface DiviProps {
   language: Language;
@@ -34,6 +34,7 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
 
   // Visual Task State
   const [lights, setLights] = useState<LightState[]>([]);
+  const [showSilentWarning, setShowSilentWarning] = useState(false);
   
   // Timers
   const visualTimerRef = useRef<number>();
@@ -45,7 +46,7 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
   }, [numLights]);
 
   const scheduleVisual = () => {
-    if (!gameState.isPlaying) return;
+    if (!gameState.isPlaying || gameState.isPaused) return;
     
     // Faster visual stimuli at higher levels
     const baseDelay = Math.max(1000, 2500 - (gameState.level * 80));
@@ -56,8 +57,6 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
       const idx = Math.floor(Math.random() * numLights);
       
       // Determine if Target (Green) or Distractor (Red)
-      // Level 1-3: No distractors
-      // Level 4+: 30% chance of distractor
       const hasDistractors = gameState.level >= 4;
       const isTarget = !hasDistractors || Math.random() > 0.3;
 
@@ -65,7 +64,6 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
       newLights[idx] = isTarget ? 'target' : 'distractor';
       setLights(newLights);
       
-      // Light duration
       const duration = Math.max(1000, 2500 - (gameState.level * 50));
       setTimeout(() => setLights(new Array(numLights).fill('off')), duration);
       
@@ -74,12 +72,11 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
   };
 
   const scheduleAudio = () => {
-    if (!gameState.isPlaying) return;
+    if (!gameState.isPlaying || gameState.isPaused) return;
     
     const delay = 3000 + Math.random() * 3000;
     
     audioTimerRef.current = window.setTimeout(() => {
-      // 30% chance of High Pitch (Target)
       const isTarget = Math.random() < 0.3;
       audioService.playSound(isTarget ? 'high-pitch' : 'low-pitch');
       
@@ -93,46 +90,54 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
   };
 
   useEffect(() => {
-    scheduleVisual();
-    scheduleAudio();
+    // Check for silent mode after a short delay
+    const silentCheckTimer = setTimeout(() => {
+      if (!audioService.isAudioReady()) {
+        setShowSilentWarning(true);
+      }
+    }, 1000);
+
+    if (gameState.isPlaying && !gameState.isPaused) {
+      scheduleVisual();
+      scheduleAudio();
+    }
+    
     return () => {
+      clearTimeout(silentCheckTimer);
       clearTimeout(visualTimerRef.current);
       clearTimeout(audioTimerRef.current);
     };
-  }, [gameState.level, numLights]);
+  }, [gameState.level, numLights, gameState.isPlaying, gameState.isPaused]);
 
   const handleVisualClick = (idx: number) => {
+    if (gameState.isPaused) return;
     const state = lights[idx];
     if (state === 'target') {
-      // Correct
       setLights(new Array(numLights).fill('off'));
       setGameState(p => ({
         ...p, 
         score: p.score + 1, 
         trials: p.trials + 1,
-        // Increase level every 5 points, Infinite
         level: p.score > 0 && p.score % 5 === 0 ? p.level + 1 : p.level
       }));
-    } else if (state === 'distractor') {
-      // Clicked Red light -> Error
-      setGameState(p => ({...p, errors: p.errors + 1, trials: p.trials + 1}));
-    } else {
-      // Clicked empty -> Error
+    } else if (state === 'distractor' || state === 'off') {
       setGameState(p => ({...p, errors: p.errors + 1, trials: p.trials + 1}));
     }
   };
 
   const handleAudioResponse = () => {
+    if (gameState.isPaused) return;
     if ((window as any).audioTargetActive) {
       setGameState(p => ({...p, score: p.score + 1, trials: p.trials + 1}));
-      (window as any).audioTargetActive = false; // Prevent double score
+      (window as any).audioTargetActive = false;
     } else {
       setGameState(p => ({...p, errors: p.errors + 1, trials: p.trials + 1}));
     }
   };
 
   const finishSession = () => {
-     onComplete({
+    setGameState(p => ({ ...p, isPlaying: false })); // Stop timer loops
+    onComplete({
       moduleId: ModuleID.DIVI,
       durationSeconds: 0,
       level: gameState.level,
@@ -151,8 +156,15 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
       onPauseToggle={() => setGameState(p => ({...p, isPaused: !p.isPaused}))}
       onStop={finishSession}
     >
-      <div className="flex flex-col h-full bg-slate-900 text-white p-4 md:p-8 gap-4 md:gap-8">
+      <div className="flex flex-col h-full bg-slate-900 text-white p-4 md:p-8 gap-4 md:gap-8 relative">
         
+        {showSilentWarning && (
+          <div className="absolute top-4 right-4 z-50 bg-amber-100 text-amber-800 px-3 py-2 rounded-lg flex items-center gap-2 text-xs font-bold shadow-lg border border-amber-200 animate-in fade-in">
+            <VolumeX className="w-4 h-4" />
+            <span>{t.silentModeWarning}</span>
+          </div>
+        )}
+
         {/* Visual Task Area */}
         <div className="flex-1 border-b border-slate-700 flex flex-col items-center justify-center gap-6">
            <div className="flex items-center gap-2 text-blue-300">

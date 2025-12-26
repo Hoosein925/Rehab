@@ -3,7 +3,7 @@ import { ModuleShell } from '../components/ModuleShell';
 import { Language, GameState, SessionResult, ModuleID } from '../types';
 import { translations } from '../services/localization';
 import { audioService } from '../services/audio';
-import { Circle, User, Play, AlertTriangle } from 'lucide-react';
+import { Circle, User, Play, AlertTriangle, VolumeX } from 'lucide-react';
 
 interface ReakProps {
   language: Language;
@@ -26,6 +26,7 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   const [status, setStatus] = useState<'waiting' | 'ready' | 'go' | 'feedback'>('waiting');
   const [feedback, setFeedback] = useState<string>('');
   const [mode, setMode] = useState<Mode>('simple');
+  const [showSilentWarning, setShowSilentWarning] = useState(false);
   
   const timeoutRef = useRef<number>();
   const missTimerRef = useRef<number>();
@@ -33,7 +34,7 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   const [reactionTimes, setReactionTimes] = useState<number[]>([]);
 
   const scheduleTrial = () => {
-    if (!gameState.isPlaying) return;
+    if (!gameState.isPlaying || gameState.isPaused) return;
     setStatus('waiting');
     setFeedback('');
     
@@ -70,8 +71,17 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   };
 
   useEffect(() => {
+    // Check for silent mode after a short delay
+    const silentCheckTimer = setTimeout(() => {
+      if (!audioService.isAudioReady()) {
+        setShowSilentWarning(true);
+      }
+    }, 1000);
+
     scheduleTrial();
+    
     return () => {
+      clearTimeout(silentCheckTimer);
       clearTimeout(timeoutRef.current);
       clearTimeout(missTimerRef.current);
     };
@@ -118,6 +128,7 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
+        e.preventDefault(); // Prevent page scroll
         handleAction();
       }
     };
@@ -126,6 +137,7 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   }, [status, gameState.isPaused]);
 
   const finishSession = () => {
+    setGameState(p => ({ ...p, isPlaying: false })); // Stop any pending timers
     const avgRt = reactionTimes.length > 0 
       ? reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length 
       : 0;
@@ -198,9 +210,16 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
       onStop={finishSession}
     >
       <div 
-        className="w-full h-full flex flex-col items-center justify-center cursor-pointer select-none touch-manipulation bg-slate-50"
+        className="w-full h-full flex flex-col items-center justify-center cursor-pointer select-none touch-manipulation bg-slate-50 relative"
         onClick={handleAction} // Allow click/tap anywhere
       >
+        {showSilentWarning && (
+          <div className="absolute top-4 right-4 z-50 bg-amber-100 text-amber-800 px-3 py-2 rounded-lg flex items-center gap-2 text-xs font-bold shadow-lg border border-amber-200 animate-in fade-in">
+            <VolumeX className="w-4 h-4" />
+            <span>{t.silentModeWarning}</span>
+          </div>
+        )}
+
         {renderVisual()}
         
         <div className="absolute bottom-10 text-slate-400 text-sm font-medium">

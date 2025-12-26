@@ -35,16 +35,9 @@ export const Vigi: React.FC<VigiProps> = ({ language, onComplete }) => {
   const [targetItem, setTargetItem] = useState<any>(Zap);
   const timerRef = useRef<number>();
 
-  useEffect(() => {
-    setTargetItem(Zap);
-    runTrial();
-    return () => clearTimeout(timerRef.current);
-  }, [gameState.isPlaying]);
-
   const runTrial = () => {
     if (!gameState.isPlaying || gameState.isPaused) return;
 
-    // Show item
     const isTarget = Math.random() < 0.15; // Rare target (15%)
     const Item = isTarget ? Zap : ITEMS[Math.floor(Math.random() * ITEMS.length)];
     
@@ -52,11 +45,9 @@ export const Vigi: React.FC<VigiProps> = ({ language, onComplete }) => {
     (window as any).vigiTarget = isTarget;
     (window as any).vigiResponded = false;
 
-    // Display duration
     const duration = 1500; 
 
     timerRef.current = window.setTimeout(() => {
-       // Check Omission
        if ((window as any).vigiTarget && !(window as any).vigiResponded) {
          setGameState(p => ({...p, errors: p.errors + 1, trials: p.trials + 1}));
        }
@@ -65,9 +56,17 @@ export const Vigi: React.FC<VigiProps> = ({ language, onComplete }) => {
        setTimeout(runTrial, 500); 
     }, duration);
   };
+  
+  useEffect(() => {
+    setTargetItem(Zap);
+    if(gameState.isPlaying && !gameState.isPaused) {
+      runTrial();
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [gameState.isPlaying, gameState.isPaused]);
 
   const handlePress = () => {
-    if ((window as any).vigiResponded) return;
+    if ((window as any).vigiResponded || gameState.isPaused) return;
     (window as any).vigiResponded = true;
 
     if ((window as any).vigiTarget) {
@@ -78,6 +77,7 @@ export const Vigi: React.FC<VigiProps> = ({ language, onComplete }) => {
   };
 
   const finishSession = () => {
+     setGameState(p => ({ ...p, isPlaying: false })); // Stop timer loops
      onComplete({
       moduleId: ModuleID.VIGI,
       durationSeconds: 0,
