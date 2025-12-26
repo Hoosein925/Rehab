@@ -143,7 +143,7 @@ export const translations = {
     creator: "Creator: Hossein Nassari - 2025",
     watchVideos: "For educational videos:",
     contactCreator: "Contact Creator:",
-    silentModeWarning: "Sound may be off. Please check your device's silent mode."
+    silentModeWarning: "Mobile must not be in silent mode for this test"
   },
   [Language.AR]: {
     welcome: "تسجيل الدخول NeuroRehab",
@@ -230,7 +230,7 @@ export const translations = {
       VERB: { name: "الذاكرة اللفظية", desc: "تذكر واستدعاء قوائم الكلمات." },
       REAK: { name: "سرعة رد الفعل", desc: "رد فعل بسيط للمحفزات البصرية." },
       LOGI: { name: "الاستدلال المنطقي", desc: "إكمال المتتاليات والأنماط المنطقية." },
-      PLAN: { name: "التخطيط", desc: "تخطيط التسلسل ومهام توصيل المسار." },
+      PLAN: { name: "التخطيط", desc: "تصفية التسلسل ومهام توصيل المسار." },
       SAGU: { name: "العمليات المكانية", desc: "التدوير الذهني والتلاعب المكاني." },
       CORSI: { name: "مكعبات كورسي", desc: "سعة الذاكرة العاملة البصرية المكانية." },
       NBACK: { name: "مهمة N-Back", desc: "تدريب تحديث الذاكرة العاملة." },
@@ -285,7 +285,7 @@ export const translations = {
     creator: "المطور: حسين نصاري - 2025",
     watchVideos: "لمقاطع الفيديو التعليمية:",
     contactCreator: "للتواصل مع المطور:",
-    silentModeWarning: "قد يكون الصوت مغلقًا. يرجى التحقق من وضع الصامت في جهازك."
+    silentModeWarning: "يجب ألا يكون الهاتف في وضع الصامت لهذا الاختبار"
   },
   [Language.FA]: {
     welcome: "ورود به سیستم توانبخشی",
@@ -427,6 +427,6 @@ export const translations = {
     creator: "سازنده حسین نصاری سال ۱۴۰۴",
     watchVideos: "جهت دسترسی به ویدئوهای آموزشی:",
     contactCreator: "ارتباط با سازنده:",
-    silentModeWarning: "صدا ممکن است قطع باشد. لطفاً حالت بی‌صدا (Silent) دستگاه خود را بررسی کنید."
+    silentModeWarning: "برای این تست موبایل نباید روی حالت سایلنت باشد"
   }
 };
