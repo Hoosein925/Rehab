@@ -1,3 +1,4 @@
+
 import { Language } from '../types';
 
 export const dir = (lang: Language) => (lang === Language.FA || lang === Language.AR) ? 'rtl' : 'ltr';
@@ -404,8 +405,8 @@ export const translations = {
       phys_which: "کدام چهره را دیدید؟",
       vist_instr: "هرگاه نقطه سفید دیدید کلیک کنید",
       plan_instr: "به ترتیب وصل کنید:",
-      plan_mode_num: "۱ -> ۲ -> ۳...",
-      plan_mode_mix: "۱ -> الف -> ۲ -> ب...",
+      plan_mode_num: "1 -> 2 -> 3...",
+      plan_mode_mix: "1 -> A -> 2 -> B...",
       verb_mem: "کلمات را به خاطر بسپارید",
       verb_recall: "کلماتی که دیدید را انتخاب کنید",
       expl_instr: "تمام موارد مشابه این شکل را پیدا کنید:",
