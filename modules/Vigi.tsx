@@ -63,7 +63,7 @@ export const Vigi: React.FC<VigiProps> = ({ language, onComplete }) => {
     if(gameState.isPlaying && !gameState.isPaused) {
       runTrial();
     }
-    // Fix: Ensure arguments are explicitly passed to window.clearTimeout
+    // Correcting clearTimeout calls in cleanup function to ensure arguments are passed as required by TypeScript types
     return () => {
       if (timerRef.current !== undefined) window.clearTimeout(timerRef.current);
     };
