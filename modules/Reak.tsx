@@ -36,7 +36,7 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   const startTimeRef = useRef<number>(0);
   const [reactionTimes, setReactionTimes] = useState<number[]>([]);
 
-  // Fix: Ensure arguments are explicitly passed to window.clearTimeout
+  // Correcting clearTimeout calls to ensure arguments are passed as required by TypeScript types
   const clearAllTimers = () => {
     if (timeoutRef.current !== undefined) window.clearTimeout(timeoutRef.current);
     if (missTimerRef.current !== undefined) window.clearTimeout(missTimerRef.current);
