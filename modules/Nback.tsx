@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ModuleShell } from '../components/ModuleShell';
 import { Language, GameState, SessionResult, ModuleID } from '../types';
@@ -48,10 +49,12 @@ export const Nback: React.FC<NbackProps> = ({ language, onComplete }) => {
   // Track loop status to prevent double-starts
   const isLoopRunningRef = useRef(false);
 
-  // Clean up timers
+  // Fix: Use window.clearTimeout and ensure explicit arguments
   const clearTimers = () => {
-    clearTimeout(displayTimerRef.current);
-    clearTimeout(blankTimerRef.current);
+    if (displayTimerRef.current !== undefined) window.clearTimeout(displayTimerRef.current);
+    if (blankTimerRef.current !== undefined) window.clearTimeout(blankTimerRef.current);
+    displayTimerRef.current = undefined;
+    blankTimerRef.current = undefined;
   };
 
   useEffect(() => {

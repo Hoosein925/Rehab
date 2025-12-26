@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ModuleShell } from '../components/ModuleShell';
 import { Language, GameState, SessionResult, ModuleID } from '../types';
@@ -28,13 +29,26 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   const [mode, setMode] = useState<Mode>('simple');
   const [showSilentWarning, setShowSilentWarning] = useState(false);
   
+  const isMounted = useRef(true);
   const timeoutRef = useRef<number>();
   const missTimerRef = useRef<number>();
+  const feedbackTimerRef = useRef<number>();
   const startTimeRef = useRef<number>(0);
   const [reactionTimes, setReactionTimes] = useState<number[]>([]);
 
+  // Fix: Use window.clearTimeout to avoid ambiguity and ensure explicit arguments are passed
+  const clearAllTimers = () => {
+    if (timeoutRef.current !== undefined) window.clearTimeout(timeoutRef.current);
+    if (missTimerRef.current !== undefined) window.clearTimeout(missTimerRef.current);
+    if (feedbackTimerRef.current !== undefined) window.clearTimeout(feedbackTimerRef.current);
+    timeoutRef.current = undefined;
+    missTimerRef.current = undefined;
+    feedbackTimerRef.current = undefined;
+  };
+
   const scheduleTrial = () => {
-    if (!gameState.isPlaying || gameState.isPaused) return;
+    if (!isMounted.current || !gameState.isPlaying || gameState.isPaused) return;
+    
     setStatus('waiting');
     setFeedback('');
     
@@ -47,13 +61,17 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
     // Random delay between 2000ms and 5000ms
     const delay = 2000 + Math.random() * 3000;
     
+    clearAllTimers();
     timeoutRef.current = window.setTimeout(() => {
+      if (!isMounted.current) return;
+      
       setStatus('go');
       startTimeRef.current = Date.now();
       audioService.playSound('success-chime');
 
       // Set a timer for missed reaction (e.g., 2 seconds max)
       missTimerRef.current = window.setTimeout(() => {
+         if (!isMounted.current) return;
          if (status !== 'feedback') {
            setStatus('feedback');
            setFeedback(t.game.missed || "Missed!");
@@ -63,7 +81,7 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
               errors: prev.errors + 1,
               trials: prev.trials + 1
            }));
-           setTimeout(scheduleTrial, 1500);
+           feedbackTimerRef.current = window.setTimeout(scheduleTrial, 1500);
          }
       }, 2000);
 
@@ -71,9 +89,11 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   };
 
   useEffect(() => {
+    isMounted.current = true;
+    
     // Check for silent mode after a short delay
-    const silentCheckTimer = setTimeout(() => {
-      if (!audioService.isAudioReady()) {
+    const silentCheckTimer = window.setTimeout(() => {
+      if (isMounted.current && !audioService.isAudioReady()) {
         setShowSilentWarning(true);
       }
     }, 1000);
@@ -81,18 +101,18 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
     scheduleTrial();
     
     return () => {
-      clearTimeout(silentCheckTimer);
-      clearTimeout(timeoutRef.current);
-      clearTimeout(missTimerRef.current);
+      isMounted.current = false;
+      window.clearTimeout(silentCheckTimer);
+      clearAllTimers();
     };
   }, []);
 
   const handleAction = () => {
-    if (gameState.isPaused || status === 'feedback') return;
+    if (gameState.isPaused || status === 'feedback' || !isMounted.current) return;
 
     if (status === 'waiting') {
       // Impulsive reaction (too early) - ERROR
-      clearTimeout(timeoutRef.current); // Prevent it from turning green
+      clearAllTimers(); 
       setStatus('feedback');
       setFeedback(t.game.reak_early);
       audioService.playSound('error-buzz');
@@ -102,11 +122,12 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
         errors: prev.errors + 1,
         trials: prev.trials + 1
       }));
-      setTimeout(scheduleTrial, 1500);
+      feedbackTimerRef.current = window.setTimeout(scheduleTrial, 1500);
       
     } else if (status === 'go') {
       // Correct reaction
-      clearTimeout(missTimerRef.current); // Clear the miss timer
+      if (missTimerRef.current) window.clearTimeout(missTimerRef.current);
+      
       const rt = Date.now() - startTimeRef.current;
       setReactionTimes(prev => [...prev, rt]);
       setStatus('feedback');
@@ -116,11 +137,10 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
         ...prev,
         score: prev.score + 1,
         trials: prev.trials + 1,
-        // Infinite progression: Level up every 5 correct trials
         level: prev.score > 0 && prev.score % 5 === 0 ? prev.level + 1 : prev.level
       }));
       
-      setTimeout(scheduleTrial, 1500);
+      feedbackTimerRef.current = window.setTimeout(scheduleTrial, 1500);
     }
   };
 
@@ -128,7 +148,7 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
-        e.preventDefault(); // Prevent page scroll
+        e.preventDefault();
         handleAction();
       }
     };
@@ -137,7 +157,10 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
   }, [status, gameState.isPaused]);
 
   const finishSession = () => {
-    setGameState(p => ({ ...p, isPlaying: false })); // Stop any pending timers
+    isMounted.current = false;
+    clearAllTimers();
+    setGameState(p => ({ ...p, isPlaying: false }));
+    
     const avgRt = reactionTimes.length > 0 
       ? reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length 
       : 0;
@@ -211,7 +234,7 @@ export const Reak: React.FC<ReakProps> = ({ language, onComplete }) => {
     >
       <div 
         className="w-full h-full flex flex-col items-center justify-center cursor-pointer select-none touch-manipulation bg-slate-50 relative"
-        onClick={handleAction} // Allow click/tap anywhere
+        onClick={handleAction}
       >
         {showSilentWarning && (
           <div className="absolute top-4 right-4 z-50 bg-amber-100 text-amber-800 px-3 py-2 rounded-lg flex items-center gap-2 text-xs font-bold shadow-lg border border-amber-200 animate-in fade-in">

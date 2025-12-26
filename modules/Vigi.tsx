@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ModuleShell } from '../components/ModuleShell';
 import { Language, GameState, SessionResult, ModuleID } from '../types';
@@ -62,7 +63,10 @@ export const Vigi: React.FC<VigiProps> = ({ language, onComplete }) => {
     if(gameState.isPlaying && !gameState.isPaused) {
       runTrial();
     }
-    return () => clearTimeout(timerRef.current);
+    // Fix: Use window.clearTimeout and check for existence
+    return () => {
+      if (timerRef.current !== undefined) window.clearTimeout(timerRef.current);
+    };
   }, [gameState.isPlaying, gameState.isPaused]);
 
   const handlePress = () => {

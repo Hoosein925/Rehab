@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ModuleShell } from '../components/ModuleShell';
 import { Language, GameState, SessionResult, ModuleID } from '../types';
@@ -24,7 +25,6 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
     isPaused: false
   });
 
-  // Calculate grid size based on level
   const getGridSize = (level: number) => {
     if (level < 6) return 5;
     if (level < 15) return 7;
@@ -32,31 +32,43 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
   };
   const numLights = getGridSize(gameState.level);
 
-  // Visual Task State
   const [lights, setLights] = useState<LightState[]>([]);
   const [showSilentWarning, setShowSilentWarning] = useState(false);
   
-  // Timers
+  const isMounted = useRef(true);
   const visualTimerRef = useRef<number>();
+  const visualOffTimerRef = useRef<number>();
   const audioTimerRef = useRef<number>();
+  const audioTargetTimerRef = useRef<number>();
+  const audioActiveRef = useRef(false);
 
-  // Init lights array when level changes
+  // Fix: Use window.clearTimeout and ensure explicit arguments
+  const clearAllTimers = () => {
+    if (visualTimerRef.current !== undefined) window.clearTimeout(visualTimerRef.current);
+    if (visualOffTimerRef.current !== undefined) window.clearTimeout(visualOffTimerRef.current);
+    if (audioTimerRef.current !== undefined) window.clearTimeout(audioTimerRef.current);
+    if (audioTargetTimerRef.current !== undefined) window.clearTimeout(audioTargetTimerRef.current);
+    visualTimerRef.current = undefined;
+    visualOffTimerRef.current = undefined;
+    audioTimerRef.current = undefined;
+    audioTargetTimerRef.current = undefined;
+    audioActiveRef.current = false;
+  };
+
   useEffect(() => {
     setLights(new Array(numLights).fill('off'));
   }, [numLights]);
 
   const scheduleVisual = () => {
-    if (!gameState.isPlaying || gameState.isPaused) return;
+    if (!isMounted.current || !gameState.isPlaying || gameState.isPaused) return;
     
-    // Faster visual stimuli at higher levels
     const baseDelay = Math.max(1000, 2500 - (gameState.level * 80));
     const delay = baseDelay + Math.random() * 1500;
     
     visualTimerRef.current = window.setTimeout(() => {
-      // Pick random light
-      const idx = Math.floor(Math.random() * numLights);
+      if (!isMounted.current) return;
       
-      // Determine if Target (Green) or Distractor (Red)
+      const idx = Math.floor(Math.random() * numLights);
       const hasDistractors = gameState.level >= 4;
       const isTarget = !hasDistractors || Math.random() > 0.3;
 
@@ -65,24 +77,30 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
       setLights(newLights);
       
       const duration = Math.max(1000, 2500 - (gameState.level * 50));
-      setTimeout(() => setLights(new Array(numLights).fill('off')), duration);
+      visualOffTimerRef.current = window.setTimeout(() => {
+        if (isMounted.current) setLights(new Array(numLights).fill('off'));
+      }, duration);
       
       scheduleVisual();
     }, delay);
   };
 
   const scheduleAudio = () => {
-    if (!gameState.isPlaying || gameState.isPaused) return;
+    if (!isMounted.current || !gameState.isPlaying || gameState.isPaused) return;
     
     const delay = 3000 + Math.random() * 3000;
     
     audioTimerRef.current = window.setTimeout(() => {
+      if (!isMounted.current) return;
+      
       const isTarget = Math.random() < 0.3;
       audioService.playSound(isTarget ? 'high-pitch' : 'low-pitch');
       
       if (isTarget) {
-        (window as any).audioTargetActive = true;
-        setTimeout(() => { (window as any).audioTargetActive = false; }, 2500);
+        audioActiveRef.current = true;
+        audioTargetTimerRef.current = window.setTimeout(() => {
+          audioActiveRef.current = false;
+        }, 2500);
       }
 
       scheduleAudio();
@@ -90,9 +108,10 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
   };
 
   useEffect(() => {
-    // Check for silent mode after a short delay
-    const silentCheckTimer = setTimeout(() => {
-      if (!audioService.isAudioReady()) {
+    isMounted.current = true;
+    
+    const silentCheckTimer = window.setTimeout(() => {
+      if (isMounted.current && !audioService.isAudioReady()) {
         setShowSilentWarning(true);
       }
     }, 1000);
@@ -103,17 +122,19 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
     }
     
     return () => {
-      clearTimeout(silentCheckTimer);
-      clearTimeout(visualTimerRef.current);
-      clearTimeout(audioTimerRef.current);
+      isMounted.current = false;
+      window.clearTimeout(silentCheckTimer);
+      clearAllTimers();
     };
   }, [gameState.level, numLights, gameState.isPlaying, gameState.isPaused]);
 
   const handleVisualClick = (idx: number) => {
-    if (gameState.isPaused) return;
+    if (gameState.isPaused || !isMounted.current) return;
     const state = lights[idx];
     if (state === 'target') {
       setLights(new Array(numLights).fill('off'));
+      if (visualOffTimerRef.current !== undefined) window.clearTimeout(visualOffTimerRef.current);
+      
       setGameState(p => ({
         ...p, 
         score: p.score + 1, 
@@ -126,17 +147,20 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
   };
 
   const handleAudioResponse = () => {
-    if (gameState.isPaused) return;
-    if ((window as any).audioTargetActive) {
+    if (gameState.isPaused || !isMounted.current) return;
+    if (audioActiveRef.current) {
       setGameState(p => ({...p, score: p.score + 1, trials: p.trials + 1}));
-      (window as any).audioTargetActive = false;
+      audioActiveRef.current = false;
+      if (audioTargetTimerRef.current !== undefined) window.clearTimeout(audioTargetTimerRef.current);
     } else {
       setGameState(p => ({...p, errors: p.errors + 1, trials: p.trials + 1}));
     }
   };
 
   const finishSession = () => {
-    setGameState(p => ({ ...p, isPlaying: false })); // Stop timer loops
+    isMounted.current = false;
+    clearAllTimers();
+    setGameState(p => ({ ...p, isPlaying: false }));
     onComplete({
       moduleId: ModuleID.DIVI,
       durationSeconds: 0,
@@ -165,7 +189,6 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
           </div>
         )}
 
-        {/* Visual Task Area */}
         <div className="flex-1 border-b border-slate-700 flex flex-col items-center justify-center gap-6">
            <div className="flex items-center gap-2 text-blue-300">
              <Eye /> <span>{t.game.divi_vis}</span>
@@ -186,15 +209,8 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
                );
              })}
            </div>
-           
-           {gameState.level >= 4 && (
-             <p className="text-xs text-slate-500 mt-2">
-               Level {gameState.level}: Watch out for Red lights!
-             </p>
-           )}
         </div>
 
-        {/* Audio Task Area */}
         <div className="flex-1 flex flex-col items-center justify-center gap-6">
            <div className="flex items-center gap-2 text-blue-300">
              <Volume2 /> <span>{t.game.divi_aud}</span>
@@ -208,7 +224,6 @@ export const Divi: React.FC<DiviProps> = ({ language, onComplete }) => {
              {t.game.divi_btn}
            </Button>
         </div>
-
       </div>
     </ModuleShell>
   );
