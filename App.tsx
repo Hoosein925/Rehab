@@ -7,7 +7,7 @@ import { Button } from './components/Button';
 import { 
   Brain, User as UserIcon, LogOut, BarChart2, PlayCircle, Plus, ChevronRight,
   Zap, Eye, Activity, Grid, Layers, Target, Box, Timer, Info, X, Globe, Clock,
-  Download, Upload, Calendar
+  Download, Upload, Calendar, VolumeX, AlertTriangle
 } from 'lucide-react';
 
 // Import Modules
@@ -254,12 +254,15 @@ function App() {
 
   if (view === 'countdown') {
     const activeModInfo = getModules().find(m => m.id === activeModule);
+    const requiresAudio = activeModule === ModuleID.DIVI || activeModule === ModuleID.REAK;
+    
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-xl text-white" dir={dir(language)}>
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-xl text-white p-6" dir={dir(language)}>
          <div className="text-3xl font-bold mb-4 opacity-80 text-center px-4">
            {activeModInfo?.name}
          </div>
-         <div className="relative">
+         
+         <div className="relative mb-12">
             <div className="w-48 h-48 rounded-full border-4 border-white/20 flex items-center justify-center animate-pulse">
                <span className="text-9xl font-black text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">
                  {count}
@@ -267,7 +270,20 @@ function App() {
             </div>
             <div className="absolute top-0 left-0 w-full h-full border-t-4 border-blue-500 rounded-full animate-spin duration-1000"></div>
          </div>
-         <div className="mt-12 text-2xl font-bold text-blue-300 animate-bounce">
+
+         {requiresAudio && (
+            <div className="bg-amber-500/20 border border-amber-500/50 p-6 rounded-3xl flex flex-col items-center gap-4 max-w-sm w-full animate-bounce shadow-2xl shadow-amber-500/20 mb-8">
+               <div className="bg-amber-500 p-3 rounded-2xl text-slate-900 shadow-lg">
+                  <VolumeX size={32} strokeWidth={2.5} />
+               </div>
+               <div className="text-center">
+                  <p className="text-lg font-black text-amber-400 mb-1">{t.silentModeWarning}</p>
+                  <p className="text-xs text-amber-200/70 font-bold uppercase tracking-widest">Audio Required for this Module</p>
+               </div>
+            </div>
+         )}
+
+         <div className="text-2xl font-bold text-blue-300 animate-pulse">
             {t.getReady}
          </div>
       </div>
